@@ -6,7 +6,7 @@ import {
 	type CompletionResult,
 } from '@codemirror/autocomplete';
 import { EditorState } from '@codemirror/state';
-import { EditorView, keymap, placeholder as placeholderExtension, tooltips } from '@codemirror/view';
+import { drawSelection, EditorView, keymap, placeholder as placeholderExtension, tooltips } from '@codemirror/view';
 
 interface FormulaItem {
 	label: string;
@@ -165,6 +165,7 @@ export function createFormulaEditor(parent: HTMLElement, options: FormulaEditorO
 			extensions: [
 				EditorView.contentAttributes.of({ 'aria-label': 'Formula', spellcheck: 'false' }),
 				EditorView.lineWrapping,
+				drawSelection(),
 				tooltips({ parent: activeDocument.body }),
 				placeholderExtension(options.placeholder ?? ''),
 				autocompletion({

@@ -158,6 +158,16 @@
 	font-size: var(--font-ui-small);
 }
 
+.summary-base-view-formula-editor .cm-cursor,
+.summary-base-view-formula-editor .cm-dropCursor {
+	border-left: 2px solid var(--text-normal);
+}
+
+.summary-base-view-formula-editor .cm-editor .cm-selectionBackground,
+.summary-base-view-formula-editor .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+	background: var(--text-selection);
+}
+
 .summary-base-view-formula-editor .cm-editor.cm-focused {
 	outline: none;
 	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);

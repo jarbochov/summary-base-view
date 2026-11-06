@@ -138,7 +138,15 @@ function parseViewSettings(source: string, viewName: string): ParsedViewSettings
 function upsertCustomSummaryDefinition(source: string, name: string, formula: string): string {
 	const lines = source.split(/\r?\n/);
 	const entry = `  ${JSON.stringify(name)}: ${JSON.stringify(formula)}`;
+	const emptyInline = lines.findIndex((line) => /^summaries\s*:\s*\{\s*\}\s*(?:#.*)?$/.test(line));
+	if (emptyInline >= 0) {
+		lines.splice(emptyInline, 1, 'summaries:', entry);
+		return lines.join('\n');
+	}
 	const summariesIndex = lines.findIndex((line) => /^summaries\s*:\s*(?:#.*)?$/.test(line));
+	if (lines.some((line) => /^summaries\s*:\s*\S/.test(line) && summariesIndex < 0)) {
+		throw new Error('The summaries section of this Base is written inline and cannot be edited automatically.');
+	}
 	if (summariesIndex >= 0) {
 		let end = summariesIndex + 1;
 		while (end < lines.length && (lines[end].trim().length === 0 || /^\s/.test(lines[end]))) {
