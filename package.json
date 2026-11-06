@@ -1,6 +1,6 @@
 {
   "name": "summary-base-view",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Grouped summary table rendered as a custom Obsidian Bases view.",
   "main": "main.js",
   "scripts": {
