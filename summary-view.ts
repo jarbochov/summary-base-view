@@ -21,7 +21,7 @@ import {
 	Value,
 } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
-import { createFormulaEditor } from './formula-editor';
+import { createFormulaEditor, PRESET_SUMMARY_FORMULAS } from './formula-editor';
 import {
 	buildSummaryColumns,
 	buildSummaryRows,
@@ -40,6 +40,8 @@ import {
 } from './summary-core';
 
 export const SUMMARY_VIEW_TYPE = 'summary-base-view';
+const DATE_RANGE_SUMMARY = 'Date range';
+const DATE_RANGE_FORMULA = 'values.earliest().format("YYYY-MM-DD") + " ~ " + values.latest().format("YYYY-MM-DD")';
 const MIN_COLUMN_WIDTH = 60;
 const MAX_AUTO_COLUMN_WIDTH = 480;
 
@@ -113,7 +115,7 @@ function parseViewSettings(source: string, viewName: string): ParsedViewSettings
 	};
 }
 
-function addCustomSummaryDefinition(source: string, name: string, formula: string): string {
+function upsertCustomSummaryDefinition(source: string, name: string, formula: string): string {
 	const lines = source.split(/\r?\n/);
 	const entry = `  ${JSON.stringify(name)}: ${JSON.stringify(formula)}`;
 	const summariesIndex = lines.findIndex((line) => /^summaries\s*:\s*(?:#.*)?$/.test(line));
@@ -125,7 +127,16 @@ function addCustomSummaryDefinition(source: string, name: string, formula: strin
 		while (end > summariesIndex + 1 && lines[end - 1].trim().length === 0) {
 			end -= 1;
 		}
-		lines.splice(end, 0, entry);
+		const quoted = JSON.stringify(name);
+		const existing = lines.slice(summariesIndex + 1, end).findIndex((line) => {
+			const trimmed = line.trim();
+			return trimmed.startsWith(`${quoted}:`) || trimmed.startsWith(`${name}:`) || trimmed.startsWith(`'${name}':`);
+		});
+		if (existing >= 0) {
+			lines[summariesIndex + 1 + existing] = entry;
+		} else {
+			lines.splice(end, 0, entry);
+		}
 		return lines.join('\n');
 	}
 	const viewsIndex = lines.findIndex((line) => /^views\s*:\s*(?:#.*)?$/.test(line));
@@ -136,28 +147,34 @@ function addCustomSummaryDefinition(source: string, name: string, formula: strin
 	return lines.join('\n');
 }
 
+interface SummaryModalOptions {
+	existingNames: ReadonlySet<string>;
+	onSubmit: (name: string, formula: string) => void;
+	edit?: { name: string; formula: string };
+}
+
 class AddSummaryModal extends Modal {
-	private name = '';
-	private formula = '';
+	private name: string;
+	private formula: string;
 	private editor: EditorView | null = null;
 
-	constructor(
-		app: Modal['app'],
-		private readonly existingNames: ReadonlySet<string>,
-		private readonly onSubmit: (name: string, formula: string) => void,
-	) {
+	constructor(app: Modal['app'], private readonly options: SummaryModalOptions) {
 		super(app);
+		this.name = options.edit?.name ?? '';
+		this.formula = options.edit?.formula ?? '';
 	}
 
 	onOpen(): void {
-		this.setTitle('Add summary');
+		const edit = this.options.edit;
+		this.setTitle(edit ? 'Edit summary' : 'Add summary');
 		this.modalEl.addClass('summary-base-view-summary-modal');
 		new Setting(this.contentEl)
 			.setName('Name')
 			.addText((text) => {
-				text.setPlaceholder('Total').onChange((value) => {
+				text.setPlaceholder('Total').setValue(this.name).onChange((value) => {
 					this.name = value.trim();
 				});
+				text.setDisabled(Boolean(edit));
 				text.inputEl.addEventListener('keydown', (event) => {
 					if (event.key === 'Enter' && !event.isComposing) {
 						event.preventDefault();
@@ -171,6 +188,7 @@ class AddSummaryModal extends Modal {
 		formulaSetting.settingEl.addClass('summary-base-view-formula-setting');
 		const editorEl = formulaSetting.controlEl.createDiv('summary-base-view-formula-editor');
 		this.editor = createFormulaEditor(editorEl, {
+			initialValue: this.formula,
 			placeholder: 'values.sum()',
 			onChange: (value) => {
 				this.formula = value.trim();
@@ -178,7 +196,7 @@ class AddSummaryModal extends Modal {
 			onSubmit: () => this.submit(),
 		});
 		new Setting(this.contentEl).addButton((button) => button
-			.setButtonText('Add')
+			.setButtonText(edit ? 'Save' : 'Add')
 			.setCta()
 			.onClick(() => this.submit()));
 	}
@@ -188,12 +206,12 @@ class AddSummaryModal extends Modal {
 			new Notice('Enter a name and a formula.');
 			return;
 		}
-		if (this.existingNames.has(this.name)) {
+		if (!this.options.edit && this.options.existingNames.has(this.name)) {
 			new Notice(`A summary named "${this.name}" already exists.`);
 			return;
 		}
 		this.close();
-		this.onSubmit(this.name, this.formula);
+		this.options.onSubmit(this.name, this.formula);
 	}
 
 	onClose(): void {
@@ -227,12 +245,22 @@ function renderValue(container: HTMLElement, value: Value | null, context: Rende
 	}
 }
 
+function builtinSummaryFormula(key: string, example: Value | null | undefined): string {
+	if (key === DATE_RANGE_SUMMARY) {
+		return DATE_RANGE_FORMULA;
+	}
+	if (key === 'Range' && example instanceof DateValue) {
+		return '(values.latest() - values.earliest())';
+	}
+	return PRESET_SUMMARY_FORMULAS[key] ?? '';
+}
+
 function summaryOptions(value: Value | null, customSummaries: Readonly<Record<string, string>>): string[] {
 	let options: string[];
 	if (value instanceof NumberValue) {
 		options = ['Average', 'Min', 'Max', 'Sum', 'Range', 'Median', 'Stddev', 'Empty', 'Filled', 'Unique'];
 	} else if (value instanceof DateValue) {
-		options = ['Earliest', 'Latest', 'Range', 'Empty', 'Filled', 'Unique'];
+		options = ['Earliest', 'Latest', DATE_RANGE_SUMMARY, 'Range', 'Empty', 'Filled', 'Unique'];
 	} else if (value instanceof BooleanValue) {
 		options = ['Checked', 'Unchecked', 'Empty', 'Filled', 'Unique'];
 	} else {
@@ -296,6 +324,8 @@ export class SummaryBasesView extends BasesView {
 	private readonly rootEl: HTMLElement;
 	private readonly renderContext = new RenderContext();
 	private sizeOverride: Record<string, number> = {};
+	private customSummaryNames = new Set<string>();
+	private pendingSummary: { apply: () => void; timer: number } | null = null;
 	private columnOverride: SummaryColumnConfig[] | null = null;
 	private currentColumns: SummaryColumn[] = [];
 	private currentSorts: SummarySortSetting[] = [];
@@ -321,7 +351,23 @@ export class SummaryBasesView extends BasesView {
 		this.register(() => this.detachToolbar());
 	}
 
+	private getDateRange(entries: BasesEntry[], propertyId: BasesPropertyId): Value {
+		const format = (value: Value): string | null => {
+			if (!(value instanceof DateValue)) {
+				return null;
+			}
+			const text = value.toString();
+			return /\d{4}-\d{2}-\d{2}/.exec(text)?.[0] ?? text;
+		};
+		const earliest = format(this.data.getSummaryValue(this.queryController, entries, propertyId, 'Earliest'));
+		const latest = format(this.data.getSummaryValue(this.queryController, entries, propertyId, 'Latest'));
+		return earliest && latest ? new StringValue(`${earliest} ~ ${latest}`) : NullValue.value;
+	}
+
 	private getSummaryValue(entries: BasesEntry[], propertyId: BasesPropertyId, summaryKey: string): Value {
+		if (summaryKey === DATE_RANGE_SUMMARY && !this.customSummaryNames.has(summaryKey)) {
+			return this.getDateRange(entries, propertyId);
+		}
 		const value = this.data.getSummaryValue(this.queryController, entries, propertyId, summaryKey);
 		if (!(value instanceof DateValue)) {
 			return value;
@@ -339,6 +385,10 @@ export class SummaryBasesView extends BasesView {
 	}
 
 	public onDataUpdated(): void {
+		const pending = this.pendingSummary;
+		if (pending) {
+			window.setTimeout(pending.apply, 300);
+		}
 		this.render().catch((error: unknown) => {
 			console.error('Simple Summary Base View: failed to render', error);
 			this.rootEl.empty();
@@ -515,6 +565,7 @@ export class SummaryBasesView extends BasesView {
 		autoWidths: readonly number[] | null = null,
 	): void {
 		const rowHeight = 30;
+		this.customSummaryNames = new Set(Object.keys(customSummaries));
 		const sizes = { ...columnSize, ...this.sizeOverride };
 		const widths = this.getColumnWidths(groupByProperty, columns, sizes, autoWidths);
 		const starts = widths.map((_, index) => widths.slice(0, index).reduce((total, width) => total + width, 0));
@@ -1014,6 +1065,14 @@ export class SummaryBasesView extends BasesView {
 			}
 			const arrow = item.createDiv('clickable-icon bases-toolbar-menu-item-icon');
 			setIcon(arrow, isAction ? (isHideAction ? 'trash-2' : 'plus') : 'chevron-right');
+			if (key) {
+				arrow.setAttribute('aria-label', 'Edit formula');
+				arrow.addEventListener('click', (event) => {
+					event.stopPropagation();
+					menu.hide();
+					this.promptEditSummary(column, key, customSummaries[key] ?? builtinSummaryFormula(key, exampleValue));
+				});
+			}
 			item.classList.add('suggestion-item', 'bases-toolbar-menu-item', 'bases-summary-menu-item');
 			item.replaceChildren(info, arrow);
 			(isAction ? actionGroup : formulaGroup).appendChild(item);
@@ -1041,19 +1100,50 @@ export class SummaryBasesView extends BasesView {
 	}
 
 	private promptAddSummary(column: SummaryColumn, existingNames: readonly string[]): void {
-		new AddSummaryModal(this.app, new Set(existingNames), (name, formula) => {
-			const activeFile = this.app.workspace.getActiveFile();
-			if (!activeFile || activeFile.extension !== 'base') {
-				new Notice('Summary settings can only be saved when the Base file is active.');
+		this.openSummaryModal(column, { existingNames: new Set(existingNames) });
+	}
+
+	private promptEditSummary(column: SummaryColumn, name: string, formula: string): void {
+		this.openSummaryModal(column, { existingNames: new Set(), edit: { name, formula } });
+	}
+
+	private openSummaryModal(
+		column: SummaryColumn,
+		options: Pick<SummaryModalOptions, 'existingNames' | 'edit'>,
+	): void {
+		new AddSummaryModal(this.app, {
+			...options,
+			onSubmit: (name, formula) => {
+				const activeFile = this.app.workspace.getActiveFile();
+				if (!activeFile || activeFile.extension !== 'base') {
+					new Notice('Summary settings can only be saved when the Base file is active.');
+					return;
+				}
+				void this.app.vault.process(activeFile, (source) => upsertCustomSummaryDefinition(source, name, formula))
+					.then(() => this.applySummaryAfterReload(column.id, name))
+					.catch((error: unknown) => {
+						console.error('Simple Summary Base View: failed to save summary', error);
+						new Notice('Could not save the summary to this Base.');
+					});
+			},
+		}).open();
+	}
+
+	// Bases reloads the file after the write and would discard a config change made before then.
+	private applySummaryAfterReload(columnId: string, summaryKey: string): void {
+		const apply = (): void => {
+			if (this.pendingSummary?.apply !== apply) {
 				return;
 			}
-			void this.app.vault.process(activeFile, (source) => addCustomSummaryDefinition(source, name, formula))
-				.then(() => this.setSummary(column, name))
-				.catch((error: unknown) => {
-					console.error('Simple Summary Base View: failed to add summary', error);
-					new Notice('Could not add the summary to this Base.');
-				});
-		}).open();
+			window.clearTimeout(this.pendingSummary?.timer);
+			this.pendingSummary = null;
+			const column = this.currentColumns.find((item) => item.id === columnId);
+			if (column) {
+				this.setSummary(column, summaryKey);
+			}
+		};
+		window.clearTimeout(this.pendingSummary?.timer);
+		this.pendingSummary = { apply, timer: window.setTimeout(apply, 2000) };
 	}
 
 	private setSummary(column: SummaryColumn, summaryKey: string | null): void {

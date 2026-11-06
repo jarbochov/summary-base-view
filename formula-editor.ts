@@ -15,7 +15,8 @@ interface FormulaItem {
 	apply?: string;
 }
 
-const PRESET_SUMMARIES: readonly FormulaItem[] = [
+export const PRESET_SUMMARIES: readonly FormulaItem[] = [
+	{ label: 'Date range', apply: 'values.earliest().format("YYYY-MM-DD") + " ~ " + values.latest().format("YYYY-MM-DD")' },
 	{ label: 'Average', apply: 'values.mean().round(2)' },
 	{ label: 'Sum', apply: 'values.sum().round(2)' },
 	{ label: 'Min', apply: 'values.min()' },
@@ -82,6 +83,10 @@ const GLOBAL_ITEMS: readonly FormulaItem[] = [
 	{ label: 'false', detail: 'boolean' },
 	{ label: 'null', detail: 'null' },
 ];
+
+export const PRESET_SUMMARY_FORMULAS: Readonly<Record<string, string>> = Object.fromEntries(
+	PRESET_SUMMARIES.flatMap((item) => (item.apply ? [[item.label, item.apply]] : [])),
+);
 
 function toCompletion(item: FormulaItem, type: string, boost = 0): Completion {
 	const completion: Completion = { label: item.label, type, boost };
