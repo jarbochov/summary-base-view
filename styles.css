@@ -117,3 +117,36 @@
 	color: var(--text-muted);
 	padding: var(--size-4-3);
 }
+
+.summary-base-view-summary-modal .summary-base-view-formula-setting {
+	align-items: flex-start;
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+.summary-base-view-summary-modal .summary-base-view-formula-setting .setting-item-control {
+	width: 100%;
+}
+
+.summary-base-view-formula-editor {
+	width: 100%;
+}
+
+.summary-base-view-formula-editor .cm-editor {
+	text-align: start;
+	border: var(--input-border-width) solid var(--background-modifier-border);
+	border-radius: var(--input-radius);
+	background-color: var(--background-modifier-form-field);
+	padding: var(--size-2-2) var(--size-4-2);
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+}
+
+.summary-base-view-formula-editor .cm-editor.cm-focused {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.cm-tooltip.cm-tooltip-autocomplete {
+	z-index: var(--layer-menu);
+}

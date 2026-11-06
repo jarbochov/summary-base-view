@@ -20,6 +20,8 @@ import {
 	StringValue,
 	Value,
 } from 'obsidian';
+import type { EditorView } from '@codemirror/view';
+import { createFormulaEditor } from './formula-editor';
 import {
 	buildSummaryColumns,
 	buildSummaryRows,
@@ -136,6 +138,7 @@ function addCustomSummaryDefinition(source: string, name: string, formula: strin
 class AddSummaryModal extends Modal {
 	private name = '';
 	private formula = '';
+	private editor: EditorView | null = null;
 
 	constructor(
 		app: Modal['app'],
@@ -147,35 +150,54 @@ class AddSummaryModal extends Modal {
 
 	onOpen(): void {
 		this.setTitle('Add summary');
+		this.modalEl.addClass('summary-base-view-summary-modal');
 		new Setting(this.contentEl)
 			.setName('Name')
-			.addText((text) => text.setPlaceholder('Total').onChange((value) => {
-				this.name = value.trim();
-			}));
-		new Setting(this.contentEl)
+			.addText((text) => {
+				text.setPlaceholder('Total').onChange((value) => {
+					this.name = value.trim();
+				});
+				text.inputEl.addEventListener('keydown', (event) => {
+					if (event.key === 'Enter' && !event.isComposing) {
+						event.preventDefault();
+						this.editor?.focus();
+					}
+				});
+			});
+		const formulaSetting = new Setting(this.contentEl)
 			.setName('Formula')
-			.setDesc('Use values for the column values, for example values.sum() or values.mean().round(2).')
-			.addText((text) => text.setPlaceholder('values.sum()').onChange((value) => {
+			.setDesc('Use values for the column values. Type to see suggestions, for example values.sum() or values.mean().round(2).');
+		formulaSetting.settingEl.addClass('summary-base-view-formula-setting');
+		const editorEl = formulaSetting.controlEl.createDiv('summary-base-view-formula-editor');
+		this.editor = createFormulaEditor(editorEl, {
+			placeholder: 'values.sum()',
+			onChange: (value) => {
 				this.formula = value.trim();
-			}));
+			},
+			onSubmit: () => this.submit(),
+		});
 		new Setting(this.contentEl).addButton((button) => button
 			.setButtonText('Add')
 			.setCta()
-			.onClick(() => {
-				if (!this.name || !this.formula) {
-					new Notice('Enter a name and a formula.');
-					return;
-				}
-				if (this.existingNames.has(this.name)) {
-					new Notice(`A summary named "${this.name}" already exists.`);
-					return;
-				}
-				this.close();
-				this.onSubmit(this.name, this.formula);
-			}));
+			.onClick(() => this.submit()));
+	}
+
+	private submit(): void {
+		if (!this.name || !this.formula) {
+			new Notice('Enter a name and a formula.');
+			return;
+		}
+		if (this.existingNames.has(this.name)) {
+			new Notice(`A summary named "${this.name}" already exists.`);
+			return;
+		}
+		this.close();
+		this.onSubmit(this.name, this.formula);
 	}
 
 	onClose(): void {
+		this.editor?.destroy();
+		this.editor = null;
 		this.contentEl.empty();
 	}
 }

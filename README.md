@@ -46,7 +46,7 @@ View settings:
 - Right-click a column header and choose **Add summary column** to summarize the same property a second way, such as Sum and Average of `amount`.
 - Right-click a header and choose **Remove column** to remove any column, including Count. Use the group header menu to add Count back.
 - Click a footer cell to choose a native summary (Sum, Average, Earliest, Unique, and so on).
-- Choose **Add summary** in that picker to write your own formula. It is saved as a custom summary in the Base and can be reused.
+- Choose **Add summary** in that picker to write your own formula. The formula editor suggests `values` methods (`sum()`, `mean()`, `filter()`, ...), chained helpers such as `round()`, and the built-in summaries as you type. The result is saved as a custom summary in the Base and can be reused.
 - Summaries respect the property type. A date-only property stays date-only for Earliest and Latest.
 
 ### 3. Sort, resize, and export
