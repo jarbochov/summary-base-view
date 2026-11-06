@@ -155,6 +155,8 @@ interface SummaryModalOptions {
 	existingNames: ReadonlySet<string>;
 	onSubmit: (name: string, formula: string) => void;
 	edit?: { name: string; formula: string };
+	choices?: readonly string[];
+	onChoose?: (name: string) => void;
 }
 
 class AddSummaryModal extends Modal {
@@ -172,6 +174,21 @@ class AddSummaryModal extends Modal {
 		const edit = this.options.edit;
 		this.setTitle(edit ? 'Edit summary' : 'Add summary');
 		this.modalEl.addClass('summary-base-view-summary-modal');
+		const { choices, onChoose } = this.options;
+		if (edit && choices && onChoose) {
+			new Setting(this.contentEl)
+				.setName('Switch summary')
+				.setDesc('Use a different built-in or custom summary for this column.')
+				.addDropdown((dropdown) => {
+					for (const choice of choices) {
+						dropdown.addOption(choice, choice);
+					}
+					dropdown.setValue(edit.name).onChange((value) => {
+						this.close();
+						onChoose(value);
+					});
+				});
+		}
 		new Setting(this.contentEl)
 			.setName('Name')
 			.addText((text) => {
@@ -1221,12 +1238,20 @@ export class SummaryBasesView extends BasesView {
 	}
 
 	private promptEditSummary(column: SummaryColumn, name: string, formula: string): void {
-		this.openSummaryModal(column, { existingNames: new Set(), edit: { name, formula } });
+		const exampleValue = column.propertyId === null ? null : this.data.data
+			.map((entry) => entry.getValue(column.propertyId as BasesPropertyId))
+			.find((value): value is Value => value !== null && !(value instanceof NullValue));
+		this.openSummaryModal(column, {
+			existingNames: new Set(),
+			edit: { name, formula },
+			choices: summaryOptions(exampleValue ?? null, Object.fromEntries([...this.customSummaryNames].map((name) => [name, '']))),
+			onChoose: (choice) => this.setSummary(column, choice),
+		});
 	}
 
 	private openSummaryModal(
 		column: SummaryColumn,
-		options: Pick<SummaryModalOptions, 'existingNames' | 'edit'>,
+		options: Pick<SummaryModalOptions, 'existingNames' | 'edit' | 'choices' | 'onChoose'>,
 	): void {
 		new AddSummaryModal(this.app, {
 			...options,
