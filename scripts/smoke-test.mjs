@@ -158,6 +158,10 @@ try {
 		core.serializeCsv(['Group', 'Count', 'Author'], [['Book, Audio', '2', 'Alpha "A"']]),
 		'Group,Count,Author\r\n"Book, Audio",2,"Alpha ""A"""',
 	);
+	assert.equal(
+		core.serializeMarkdownTable(['Group', 'Notes'], [['A | B', 'line1\nline2']]),
+		'| Group | Notes |\n| --- | --- |\n| A \\| B | line1 line2 |',
+	);
 
 	console.log('Smoke test passed.');
 } finally {

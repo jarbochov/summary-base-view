@@ -280,6 +280,20 @@ export function serializeCsv(headers: readonly string[], rows: readonly (readonl
 		.join('\r\n');
 }
 
+export function serializeMarkdownTable(headers: readonly string[], rows: readonly (readonly string[])[]): string {
+	const escapeCell = (cell: string): string => cell
+		.replace(/\\/g, '\\\\')
+		.replace(/\|/g, '\\|')
+		.replace(/\r?\n/g, ' ');
+	const line = (cells: readonly string[]): string => `| ${cells.map(escapeCell).join(' | ')} |`;
+
+	return [
+		line(headers),
+		`| ${headers.map(() => '---').join(' | ')} |`,
+		...rows.map(line),
+	].join('\n');
+}
+
 export function parseExcludedFolders(value: string): string[] {
 	return value
 		.split(/[\n,]/)

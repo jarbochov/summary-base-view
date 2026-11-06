@@ -16,7 +16,7 @@ A Bases table lists every note. Often you only want the answer: how many, how mu
 - Reuses your existing Base filters, properties and formulas. Nothing to rebuild.
 - Works anywhere a Base works, including embeds in notes.
 - Count, Sum, Average, Min, Max, Earliest, Latest, Date range, and your own formulas.
-- Sort, resize columns and copy or export CSV, like the native table.
+- Sort, resize columns and copy as CSV or as a Markdown table, or export CSV, like the native table.
 
 ## How to use
 
@@ -71,7 +71,7 @@ View settings:
 
 - Click a header, including the group header, to sort. The Base's Sort and Group menus reflect the change.
 - Drag the edge of a header to resize a column.
-- Use the results button to copy the summary to the clipboard or export it as CSV.
+- Use the results button to copy the summary as CSV or as a Markdown table, or export it as CSV.
 
 ## Settings
 
@@ -79,7 +79,7 @@ View settings:
 
 ## Clipboard access
 
-The plugin writes to your clipboard only when you choose **Copy to clipboard** from the results menu. It copies the summary table as CSV and never reads the clipboard.
+The plugin writes to your clipboard only when you choose **Copy as CSV** or **Copy as Markdown table** from the results menu. It never reads the clipboard.
 
 ## Screenshots
 

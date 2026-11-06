@@ -38,6 +38,7 @@ import {
 	normalizeSummaryConfig,
 	readSummaryConfig,
 	serializeCsv,
+	serializeMarkdownTable,
 	sortSummaryRows,
 	isExcludedPath,
 } from './summary-core';
@@ -378,6 +379,7 @@ export class SummaryBasesView extends BasesView {
 	private currentGroupBy: string | null = null;
 	private currentSorts: SummarySortSetting[] = [];
 	private currentCsv = '';
+	private currentMarkdown = '';
 	private activeSort: ActiveSort | null = null;
 	private configSortSignature: string | null = null;
 	private pendingSortSignature: string | null = null;
@@ -472,6 +474,7 @@ export class SummaryBasesView extends BasesView {
 	private async render(): Promise<void> {
 		this.rootEl.empty();
 		this.currentCsv = '';
+		this.currentMarkdown = '';
 
 		const orderedProperties = this.config.getOrder();
 		const activeFile = this.app.workspace.getActiveFile();
@@ -594,12 +597,14 @@ export class SummaryBasesView extends BasesView {
 			groupByProperty ? this.config.getDisplayName(groupByProperty) : 'Group',
 			...columns.map((column) => this.getColumnLabel(column, columns)),
 		];
-		this.currentCsv = serializeCsv(headers, sortedRows.map((row) => [
+		const exportRows = sortedRows.map((row) => [
 			row.key.toString(),
 			...columns.map((column, index) => column.propertyId === null
 				? String(row.count)
 				: row.values[index]?.toString() ?? ''),
-		]));
+		]);
+		this.currentCsv = serializeCsv(headers, exportRows);
+		this.currentMarkdown = serializeMarkdownTable(headers, exportRows);
 
 		if (sortedRows.length === 0) {
 			this.rootEl.createDiv({
@@ -1401,15 +1406,19 @@ export class SummaryBasesView extends BasesView {
 
 	private openResultsMenu(event: MouseEvent): void {
 		const menu = new Menu();
-		menu.addItem((item) => item
-			.setTitle('Copy to clipboard')
-			.setIcon('copy')
-			.onClick(() => {
-				navigator.clipboard.writeText(this.currentCsv.replace(/\r\n/g, '\n')).then(
-					() => new Notice('Summary copied to clipboard.'),
-					() => new Notice('Could not copy the summary.'),
-				);
-			}));
+		const copy = (title: string, text: string): void => {
+			menu.addItem((item) => item
+				.setTitle(title)
+				.setIcon('copy')
+				.onClick(() => {
+					navigator.clipboard.writeText(text).then(
+						() => new Notice('Summary copied to clipboard.'),
+						() => new Notice('Could not copy the summary.'),
+					);
+				}));
+		};
+		copy('Copy as CSV', this.currentCsv.replace(/\r\n/g, '\n'));
+		copy('Copy as Markdown table', this.currentMarkdown);
 		menu.addItem((item) => item
 			.setTitle('Export CSV...')
 			.setIcon('download')
