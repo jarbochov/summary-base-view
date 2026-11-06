@@ -42,6 +42,7 @@ import {
 export const SUMMARY_VIEW_TYPE = 'summary-base-view';
 const DATE_RANGE_SUMMARY = 'Date range';
 const DATE_RANGE_FORMULA = 'values.earliest().format("YYYY-MM-DD") + " ~ " + values.latest().format("YYYY-MM-DD")';
+export const SHOW_SUMMARY_ROW_KEY = 'showSummaryRow';
 const MIN_COLUMN_WIDTH = 60;
 const MAX_AUTO_COLUMN_WIDTH = 480;
 
@@ -666,6 +667,10 @@ export class SummaryBasesView extends BasesView {
 					summaryCell.click();
 				}
 			});
+		}
+
+		if (this.config.get(SHOW_SUMMARY_ROW_KEY) === false) {
+			footer.remove();
 		}
 
 		if (autoWidths === null) {

@@ -1,7 +1,7 @@
 import { Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, SummaryBaseViewSettings, SummaryBaseViewSettingTab } from './settings';
 import { parseExcludedFolders } from './summary-core';
-import { SUMMARY_VIEW_TYPE, SummaryBasesView } from './summary-view';
+import { SHOW_SUMMARY_ROW_KEY, SUMMARY_VIEW_TYPE, SummaryBasesView } from './summary-view';
 
 export default class SummaryBaseViewPlugin extends Plugin {
 	settings: SummaryBaseViewSettings = { ...DEFAULT_SETTINGS };
@@ -13,6 +13,9 @@ export default class SummaryBaseViewPlugin extends Plugin {
 		this.registerBasesView(SUMMARY_VIEW_TYPE, {
 			name: 'Summary',
 			icon: 'lucide-table-properties',
+			options: () => [
+				{ type: 'toggle', key: SHOW_SUMMARY_ROW_KEY, displayName: 'Show summary row', default: true },
+			],
 			factory: (controller, containerEl) => {
 				const view = new SummaryBasesView(
 					controller,

@@ -62,6 +62,7 @@ View settings:
 - Click a footer cell to choose a native summary (Sum, Average, Earliest, Unique, and so on).
 - Dates also get a **Date range** summary that shows `YYYY-MM-DD ~ YYYY-MM-DD`.
 - Click the arrow beside any summary to view or edit its formula. Editing a built-in summary saves your version in the Base.
+- Turn off **Show summary row** in the view settings to hide the bottom row and show only the table.
 - Choose **Add summary** in that picker to write your own formula. The formula editor suggests `values` methods (`sum()`, `mean()`, `filter()`, ...), chained helpers such as `round()`, and the built-in summaries as you type. The result is saved as a custom summary in the Base and can be reused.
 - Summaries respect the property type. A date-only property stays date-only for Earliest and Latest.
 
