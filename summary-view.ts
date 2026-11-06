@@ -1071,8 +1071,7 @@ export class SummaryBasesView extends BasesView {
 				.setIcon('trash-2')
 				.onClick(() => this.setSummary(column, null)));
 		}
-		this.markActiveMenu(event, menu);
-		menu.showAtMouseEvent(event);
+		this.showFooterMenu(event, menu);
 
 		const openMenus = Array.from(activeDocument.querySelectorAll<HTMLElement>('.menu'));
 		const menuEl = openMenus[openMenus.length - 1];
@@ -1127,7 +1126,7 @@ export class SummaryBasesView extends BasesView {
 			const key = isAction ? null : title;
 			const info = createDiv('bases-toolbar-menu-item-info');
 			const icon = info.createDiv('bases-toolbar-menu-item-info-icon');
-			setIcon(icon, isHideAction ? 'trash-2' : isAddAction ? 'plus' : isEditAction ? 'pencil' : this.getPropertyIcon(propertyId));
+			setIcon(icon, isHideAction ? 'trash-2' : isAddAction ? 'plus' : isEditAction ? 'pencil' : key === selectedSummary ? 'check' : this.getPropertyIcon(propertyId));
 			const name = info.createDiv('bases-toolbar-menu-item-name menu-item-title');
 			name.setText(title);
 			if (key) {
@@ -1135,7 +1134,10 @@ export class SummaryBasesView extends BasesView {
 				info.createDiv({ cls: 'bases-toolbar-menu-item-value', text: value?.toString() ?? '' });
 			}
 			const arrow = item.createDiv('clickable-icon bases-toolbar-menu-item-icon');
-			setIcon(arrow, isAction ? (isHideAction ? 'trash-2' : isEditAction ? 'pencil' : 'plus') : 'chevron-right');
+			if (!isAction) {
+				setIcon(arrow, 'chevron-right');
+			}
+			item.toggleClass('is-selected', key !== null && key === selectedSummary);
 			if (key) {
 				arrow.setAttribute('aria-label', 'Edit formula');
 				arrow.addEventListener('click', (event) => {
@@ -1170,12 +1172,17 @@ export class SummaryBasesView extends BasesView {
 		});
 	}
 
-	private markActiveMenu(event: MouseEvent, menu: Menu): void {
+	// Anchors a footer menu to its cell so it opens beneath the summary instead of covering it.
+	private showFooterMenu(event: MouseEvent, menu: Menu): void {
 		const cell = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-		if (cell?.hasClass('bases-table-summary-cell')) {
-			cell.addClass('has-active-menu');
-			menu.onHide(() => cell.removeClass('has-active-menu'));
+		if (!cell?.hasClass('bases-table-summary-cell')) {
+			menu.showAtMouseEvent(event);
+			return;
 		}
+		cell.addClass('has-active-menu');
+		menu.onHide(() => cell.removeClass('has-active-menu'));
+		const rect = cell.getBoundingClientRect();
+		menu.showAtPosition({ x: rect.left, y: rect.bottom + 2 });
 	}
 
 	private openCountSummaryMenu(event: MouseEvent, column: SummaryColumn): void {
@@ -1194,8 +1201,7 @@ export class SummaryBasesView extends BasesView {
 			.setTitle('Hide summary')
 			.setIcon('trash-2')
 			.onClick(() => this.setSummary(column, COUNT_SUMMARY_NONE)));
-		this.markActiveMenu(event, menu);
-		menu.showAtMouseEvent(event);
+		this.showFooterMenu(event, menu);
 	}
 
 	private editSummary(

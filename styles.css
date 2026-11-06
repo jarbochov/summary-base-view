@@ -160,7 +160,20 @@
 	color: var(--text-faint);
 }
 
-.summary-base-view-add-summary {
-	color: var(--text-muted);
+.summary-base-view .bases-table-summary-cell .placeholder.summary-base-view-add-summary {
+	color: var(--text-faint);
 	font-style: italic;
+	opacity: 1;
+}
+
+.summary-base-view .bases-table-summary-cell[role='button']:hover .placeholder.summary-base-view-add-summary {
+	color: var(--text-muted);
+}
+
+.bases-toolbar-menu .bases-summary-menu-item.is-selected .bases-toolbar-menu-item-info-icon {
+	color: var(--interactive-accent);
+}
+
+.bases-toolbar-menu .bases-summary-menu-item.is-selected .bases-toolbar-menu-item-name {
+	font-weight: var(--font-semibold);
 }
