@@ -77,6 +77,10 @@ View settings:
 
 - **Excluded folders**: notes in these folders are left out of group counts and summaries. The default is `Templates`. Enter one folder name per line. A name matches a folder with that name anywhere. A path such as `Archive/Old` matches that folder and its subfolders. Leave it empty to include everything.
 
+## Clipboard access
+
+The plugin writes to your clipboard only when you choose **Copy to clipboard** from the results menu. It copies the summary table as CSV and never reads the clipboard.
+
 ## Screenshots
 
 Captured from small demo Bases in Obsidian's default theme. Each example shows desktop, then phone width.
