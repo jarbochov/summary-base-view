@@ -11,6 +11,7 @@ import {
 	Modal,
 	NullValue,
 	Notice,
+	Platform,
 	NumberValue,
 	parseYaml,
 	QueryController,
@@ -362,6 +363,31 @@ function writeNativeSort(config: BasesViewConfig, sorts: SummarySortSetting[]): 
 	}
 	for (const sort of [...sorts].reverse()) {
 		native.setSortProperty(sort.property, sort.direction);
+	}
+}
+
+interface ElectronClipboard {
+	writeText(text: string): void;
+}
+
+// The web clipboard API can resolve without writing when the window lacks user activation, so prefer Electron's clipboard on desktop.
+async function copyText(text: string): Promise<boolean> {
+	if (Platform.isDesktopApp) {
+		try {
+			const electron = (window as unknown as { require?: (id: string) => { clipboard?: ElectronClipboard } }).require?.('electron');
+			if (electron?.clipboard) {
+				electron.clipboard.writeText(text);
+				return true;
+			}
+		} catch {
+			// Fall back to the web clipboard API.
+		}
+	}
+	try {
+		await navigator.clipboard.writeText(text);
+		return true;
+	} catch {
+		return false;
 	}
 }
 
@@ -1411,9 +1437,8 @@ export class SummaryBasesView extends BasesView {
 				.setTitle(title)
 				.setIcon('copy')
 				.onClick(() => {
-					navigator.clipboard.writeText(text).then(
-						() => new Notice('Summary copied to clipboard.'),
-						() => new Notice('Could not copy the summary.'),
+					void copyText(text).then(
+						(copied) => new Notice(copied ? 'Summary copied to clipboard.' : 'Could not copy the summary.'),
 					);
 				}));
 		};
