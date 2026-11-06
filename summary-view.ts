@@ -26,6 +26,9 @@ import {
 	buildSummaryColumns,
 	buildSummaryRows,
 	COUNT_COLUMN_ID,
+	COUNT_SUMMARIES,
+	COUNT_SUMMARY_NONE,
+	summarizeCounts,
 	readSummaryColumns,
 	summaryColumnsToConfig,
 	type SummaryColumn,
@@ -647,8 +650,25 @@ export class SummaryBasesView extends BasesView {
 			const summaryCell = cell.createDiv('bases-table-summary-cell');
 			const content = summaryCell.createDiv('summary-content');
 			if (column.propertyId === null) {
-				content.createDiv({ cls: 'summary-function-name', text: 'Count' });
-				content.createDiv({ cls: 'summary-function-value', text: String(allEntries.length) });
+				const countKey = column.summaryKey ?? 'Count';
+				summaryCell.tabIndex = 0;
+				summaryCell.setAttribute('role', 'button');
+				summaryCell.setAttribute('aria-label', 'Choose summary for Count');
+				setIcon(summaryCell.createDiv('summary-expand-button'), 'chevrons-up-down');
+				const countValue = summarizeCounts(rows.map((row) => row.count), countKey);
+				if (countKey === COUNT_SUMMARY_NONE || countValue === null) {
+					content.createSpan({ cls: 'placeholder summary-base-view-add-summary', text: 'Add summary' });
+				} else {
+					content.createDiv({ cls: 'summary-function-name', text: countKey });
+					content.createDiv({ cls: 'summary-function-value', text: String(countValue) });
+				}
+				summaryCell.addEventListener('click', (event) => this.openCountSummaryMenu(event, column));
+				summaryCell.addEventListener('keydown', (event) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						summaryCell.click();
+					}
+				});
 				continue;
 			}
 			summaryCell.tabIndex = 0;
@@ -845,6 +865,13 @@ export class SummaryBasesView extends BasesView {
 				.onClick(() => this.removeSort()));
 		}
 
+		if (column && column.propertyId === null) {
+			menu.addSeparator();
+			menu.addItem((item) => item
+				.setTitle('Choose summary')
+				.setIcon('sigma')
+				.onClick(() => this.openCountSummaryMenu(event, column)));
+		}
 		if (column?.propertyId) {
 			menu.addSeparator();
 			menu.addItem((item) => item
@@ -1120,6 +1147,25 @@ export class SummaryBasesView extends BasesView {
 					.includes(query));
 			}
 		});
+	}
+
+	private openCountSummaryMenu(event: MouseEvent, column: SummaryColumn): void {
+		const selected = column.summaryKey ?? 'Count';
+		const menu = new Menu();
+		menu.setParentElement(this.rootEl);
+		for (const summaryKey of COUNT_SUMMARIES) {
+			menu.addItem((item) => item
+				.setTitle(summaryKey)
+				.setIcon('hash')
+				.setChecked(summaryKey === selected)
+				.onClick(() => this.setSummary(column, summaryKey)));
+		}
+		menu.addSeparator();
+		menu.addItem((item) => item
+			.setTitle('Hide summary')
+			.setIcon('trash-2')
+			.onClick(() => this.setSummary(column, COUNT_SUMMARY_NONE)));
+		menu.showAtMouseEvent(event);
 	}
 
 	private editSummary(

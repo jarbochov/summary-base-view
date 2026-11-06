@@ -165,7 +165,10 @@ export function readSummaryColumns(value: unknown): SummaryColumnConfig[] | null
 		}
 		const record = item as Record<string, unknown>;
 		if (record.type === 'count') {
-			return [{ type: 'count' }];
+			return [{
+				type: 'count',
+				summary: typeof record.summary === 'string' && record.summary.trim().length > 0 ? record.summary : undefined,
+			}];
 		}
 		if (typeof record.property !== 'string' || record.property.length === 0) {
 			return [];
@@ -181,7 +184,7 @@ export function readSummaryColumns(value: unknown): SummaryColumnConfig[] | null
 
 export function summaryColumnsToConfig(columns: readonly SummaryColumn[]): SummaryColumnConfig[] {
 	return columns.map((column) => column.propertyId === null
-		? { type: 'count' }
+		? { type: 'count', summary: column.summaryKey }
 		: { property: column.propertyId, summary: column.summaryKey });
 }
 
@@ -218,7 +221,7 @@ export function buildSummaryColumns(
 		if (item.type === 'count') {
 			if (!hasCount) {
 				hasCount = true;
-				columns.push({ id: COUNT_COLUMN_ID, propertyId: null });
+				columns.push({ id: COUNT_COLUMN_ID, propertyId: null, summaryKey: item.summary });
 			}
 			continue;
 		}
@@ -291,4 +294,31 @@ export function isExcludedPath(path: string, excludedFolders: readonly string[])
 	return excludedFolders.some((excluded) => excluded.includes('/')
 		? folderPath === excluded || folderPath.startsWith(`${excluded}/`)
 		: folders.includes(excluded));
+}
+
+export const COUNT_SUMMARIES = ['Count', 'Average', 'Min', 'Max', 'Median'] as const;
+export const COUNT_SUMMARY_NONE = 'None';
+
+export function summarizeCounts(counts: readonly number[], summaryKey: string): number | null {
+	if (counts.length === 0) {
+		return null;
+	}
+	const sorted = [...counts].sort((a, b) => a - b);
+	const total = counts.reduce((sum, count) => sum + count, 0);
+	switch (summaryKey) {
+		case 'Count':
+			return total;
+		case 'Average':
+			return Math.round((total / counts.length) * 100) / 100;
+		case 'Min':
+			return sorted[0];
+		case 'Max':
+			return sorted[sorted.length - 1];
+		case 'Median': {
+			const mid = Math.floor(sorted.length / 2);
+			return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+		}
+		default:
+			return null;
+	}
 }
