@@ -223,7 +223,7 @@ export function buildSummaryColumns(
 			continue;
 		}
 		const propertyId = normalizePropertyId(item.property, availableProperties);
-		if (propertyId && visible.includes(propertyId)) {
+		if (propertyId && (propertyId === groupByProperty || visible.includes(propertyId))) {
 			addProperty(propertyId, item.summary);
 		}
 	}

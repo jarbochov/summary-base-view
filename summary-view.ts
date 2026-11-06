@@ -329,6 +329,7 @@ export class SummaryBasesView extends BasesView {
 	private pendingSummary: { apply: () => void; timer: number } | null = null;
 	private columnOverride: SummaryColumnConfig[] | null = null;
 	private currentColumns: SummaryColumn[] = [];
+	private currentGroupBy: string | null = null;
 	private currentSorts: SummarySortSetting[] = [];
 	private currentCsv = '';
 	private activeSort: ActiveSort | null = null;
@@ -448,6 +449,7 @@ export class SummaryBasesView extends BasesView {
 			availableProperties,
 		);
 		this.currentColumns = columns;
+		this.currentGroupBy = groupByProperty;
 		const groupedData = expandSummaryGroups(
 			this.data.groupedData,
 			(key) => {
@@ -846,9 +848,11 @@ export class SummaryBasesView extends BasesView {
 		if (column?.propertyId) {
 			menu.addSeparator();
 			menu.addItem((item) => item
-				.setTitle('Choose summary')
-				.setIcon('sigma')
-				.onClick(() => this.openSummaryMenu(event, column, customSummaries)));
+				.setTitle(column.summaryKey ? 'Edit summary' : 'Choose summary')
+				.setIcon(column.summaryKey ? 'pencil' : 'sigma')
+				.onClick(() => column.summaryKey
+					? this.editSummary(column, column.summaryKey, customSummaries)
+					: this.openSummaryMenu(event, column, customSummaries)));
 			menu.addItem((item) => item
 				.setTitle('Add summary column')
 				.setIcon('columns-3')
@@ -859,8 +863,16 @@ export class SummaryBasesView extends BasesView {
 				.setTitle('Remove column')
 				.setIcon('eye-off')
 				.onClick(() => this.removeColumn(column)));
-		} else if (!columns.some((item) => item.propertyId === null)) {
+		} else {
 			menu.addSeparator();
+			if (groupByProperty) {
+				menu.addItem((item) => item
+					.setTitle('Add summary column')
+					.setIcon('columns-3')
+					.onClick(() => this.saveColumns([...columns, { id: `${groupByProperty}~new`, propertyId: groupByProperty }])));
+			}
+		}
+		if (!column && !columns.some((item) => item.propertyId === null)) {
 			menu.addItem((item) => item
 				.setTitle('Add count column')
 				.setIcon('columns-3')
@@ -891,7 +903,8 @@ export class SummaryBasesView extends BasesView {
 
 	private removeColumn(column: SummaryColumn): void {
 		const next = this.currentColumns.filter((item) => item.id !== column.id);
-		if (column.propertyId && !next.some((item) => item.propertyId === column.propertyId)) {
+		if (column.propertyId && !next.some((item) => item.propertyId === column.propertyId)
+			&& column.propertyId !== this.currentGroupBy) {
 			writeNativeOrder(this.config, this.config.getOrder().filter((property) => property !== column.propertyId));
 		}
 		this.saveColumns(next);
@@ -1003,6 +1016,10 @@ export class SummaryBasesView extends BasesView {
 			.onClick(() => this.promptAddSummary(column, options)));
 		if (selectedSummary) {
 			menu.addItem((item) => item
+				.setTitle('Edit summary')
+				.setIcon('pencil')
+				.onClick(() => this.editSummary(column, selectedSummary, customSummaries)));
+			menu.addItem((item) => item
 				.setTitle('Hide summary')
 				.setIcon('trash-2')
 				.onClick(() => this.setSummary(column, null)));
@@ -1057,11 +1074,12 @@ export class SummaryBasesView extends BasesView {
 			const title = item.querySelector<HTMLElement>('.menu-item-title')?.textContent?.trim() ?? '';
 			const isHideAction = title === 'Hide summary';
 			const isAddAction = title === 'Add summary';
-			const isAction = isHideAction || isAddAction;
+			const isEditAction = title === 'Edit summary';
+			const isAction = isHideAction || isAddAction || isEditAction;
 			const key = isAction ? null : title;
 			const info = createDiv('bases-toolbar-menu-item-info');
 			const icon = info.createDiv('bases-toolbar-menu-item-info-icon');
-			setIcon(icon, isHideAction ? 'trash-2' : isAddAction ? 'plus' : this.getPropertyIcon(propertyId));
+			setIcon(icon, isHideAction ? 'trash-2' : isAddAction ? 'plus' : isEditAction ? 'pencil' : this.getPropertyIcon(propertyId));
 			const name = info.createDiv('bases-toolbar-menu-item-name menu-item-title');
 			name.setText(title);
 			if (key) {
@@ -1069,7 +1087,7 @@ export class SummaryBasesView extends BasesView {
 				info.createDiv({ cls: 'bases-toolbar-menu-item-value', text: value?.toString() ?? '' });
 			}
 			const arrow = item.createDiv('clickable-icon bases-toolbar-menu-item-icon');
-			setIcon(arrow, isAction ? (isHideAction ? 'trash-2' : 'plus') : 'chevron-right');
+			setIcon(arrow, isAction ? (isHideAction ? 'trash-2' : isEditAction ? 'pencil' : 'plus') : 'chevron-right');
 			if (key) {
 				arrow.setAttribute('aria-label', 'Edit formula');
 				arrow.addEventListener('click', (event) => {
@@ -1102,6 +1120,17 @@ export class SummaryBasesView extends BasesView {
 					.includes(query));
 			}
 		});
+	}
+
+	private editSummary(
+		column: SummaryColumn,
+		summaryKey: string,
+		customSummaries: Readonly<Record<string, string>>,
+	): void {
+		const exampleValue = column.propertyId === null ? null : this.data.data
+			.map((entry) => entry.getValue(column.propertyId as BasesPropertyId))
+			.find((value): value is Value => value !== null && !(value instanceof NullValue));
+		this.promptEditSummary(column, summaryKey, customSummaries[summaryKey] ?? builtinSummaryFormula(summaryKey, exampleValue ?? null));
 	}
 
 	private promptAddSummary(column: SummaryColumn, existingNames: readonly string[]): void {
