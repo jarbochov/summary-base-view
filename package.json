@@ -1,0 +1,32 @@
+{
+  "name": "summary-base-view",
+  "version": "0.1.0",
+  "description": "Grouped summary table rendered as a custom Obsidian Bases view.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node scripts/smoke-test.mjs",
+    "verify": "npm run build && npm run typecheck && npm run lint && npm test"
+  },
+  "devDependencies": {
+    "esbuild": "^0.16.17",
+    "eslint": "^9.39.5",
+    "eslint-plugin-obsidianmd": "^0.5.0",
+    "obsidian": "^1.13.1",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.72.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jarbochov/summary-base-view.git"
+  },
+  "author": "jarbochov",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/jarbochov/summary-base-view/issues"
+  },
+  "homepage": "https://github.com/jarbochov/summary-base-view#readme"
+}

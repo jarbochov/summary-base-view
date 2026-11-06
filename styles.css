@@ -1,0 +1,113 @@
+.summary-base-view {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+}
+
+.summary-base-view .bases-thead,
+.summary-base-view .bases-table-container,
+.summary-base-view .bases-table,
+.summary-base-view .bases-tbody .bases-tr,
+.summary-base-view .bases-table-footer {
+	width: var(--sbv-width);
+}
+
+.summary-base-view .bases-table-container,
+.summary-base-view .bases-table,
+.summary-base-view .bases-tbody {
+	height: var(--sbv-height);
+}
+
+.summary-base-view .bases-tbody .bases-tr {
+	top: var(--sbv-top);
+}
+
+.summary-base-view .bases-td {
+	inset-inline-start: var(--sbv-start);
+	width: var(--sbv-width);
+}
+
+.summary-base-view-hidden {
+	display: none !important;
+}
+
+.summary-base-view .bases-thead {
+	flex: 0 0 auto;
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.summary-base-view .bases-table-container {
+	position: relative;
+	flex: 0 0 auto;
+	overflow: visible;
+}
+
+.summary-base-view .bases-table {
+	position: absolute;
+	top: 0;
+}
+
+.summary-base-view .bases-tbody {
+	position: relative;
+}
+
+.summary-base-view .bases-tr {
+	position: absolute;
+	display: flex;
+}
+
+.summary-base-view .bases-td {
+	position: absolute;
+	display: flex;
+}
+
+.summary-base-view .bases-table-footer {
+	flex: 0 0 auto;
+	position: sticky;
+	bottom: 0;
+	z-index: 1;
+	background: var(--background-primary);
+}
+
+.summary-base-view .bases-table-summary-cell[role='button'] {
+	cursor: pointer;
+}
+
+.summary-base-view .bases-table-summary-cell[role='button']:hover {
+	background: var(--background-modifier-hover);
+}
+
+.summary-base-view .bases-table-summary-cell[role='button']:focus-visible {
+	outline: var(--size-2-1) solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+.bases-toolbar-result-count.summary-base-view-hide-result-count {
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
+
+.summary-base-view .bases-thead .bases-td {
+	cursor: pointer;
+}
+
+.summary-base-view .bases-thead .bases-td:hover {
+	background: var(--background-modifier-hover);
+}
+
+.summary-base-view .bases-thead .bases-td[data-sort] .bases-table-header-sort {
+	opacity: 1;
+}
+
+.summary-base-view-empty,
+.summary-base-view-error {
+	color: var(--text-muted);
+	padding: var(--size-4-3);
+}

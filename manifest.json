@@ -1,0 +1,11 @@
+{
+	"id": "summary-base-view",
+	"name": "Simple Summary Base View",
+	"version": "0.1.0",
+	"minAppVersion": "1.10.0",
+	"description": "Render grouped summary tables from Bases.",
+	"author": "jarbochov",
+	"authorUrl": "https://github.com/jarbochov",
+	"fundingUrl": "https://ko-fi.com/jarbochov",
+	"isDesktopOnly": false
+}
