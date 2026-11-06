@@ -646,8 +646,9 @@ export class SummaryBasesView extends BasesView {
 			groupFooter.tabIndex = 0;
 			groupFooter.setAttribute('role', 'button');
 			groupFooter.setAttribute('aria-label', 'Add count column');
-			groupFooter.createDiv('summary-content')
-				.createSpan({ cls: 'placeholder summary-base-view-add-summary', text: 'Add count' });
+			const addButton = groupFooter.createDiv('summary-content').createSpan('summary-base-view-add-count');
+			setIcon(addButton.createSpan('summary-base-view-add-count-icon'), 'plus');
+			addButton.createSpan({ text: 'Add count' });
 			const addCount = (): void => this.saveColumns([{ id: COUNT_COLUMN_ID, propertyId: null }, ...columns]);
 			groupFooter.addEventListener('click', addCount);
 			groupFooter.addEventListener('keydown', (event) => {

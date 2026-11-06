@@ -76,6 +76,17 @@
 	background: var(--background-primary);
 }
 
+.summary-base-view .bases-table-footer .bases-td {
+	align-items: stretch;
+}
+
+/* Fill the whole footer cell so the click target doesn't change size on hover. */
+.summary-base-view .bases-table-footer .bases-table-summary-cell {
+	align-items: center;
+	align-self: stretch;
+	height: auto;
+}
+
 .summary-base-view .bases-td .summary-base-view-numeric {
 	width: 100%;
 	justify-content: flex-end;
@@ -164,6 +175,28 @@
 	color: var(--text-faint);
 	font-style: italic;
 	opacity: 1;
+}
+
+.summary-base-view .bases-table-summary-cell .summary-base-view-add-count {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-2-1);
+	padding: var(--size-2-1) var(--size-4-2);
+	border: 1px dashed var(--background-modifier-border-hover);
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
+.summary-base-view .bases-table-summary-cell .summary-base-view-add-count-icon {
+	display: inline-flex;
+	--icon-size: var(--icon-xs);
+}
+
+.summary-base-view .bases-table-summary-cell[role='button']:hover .summary-base-view-add-count {
+	border-color: var(--interactive-accent);
+	color: var(--text-normal);
 }
 
 .summary-base-view .bases-table-summary-cell[role='button']:hover .placeholder.summary-base-view-add-summary {
