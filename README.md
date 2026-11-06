@@ -1,8 +1,22 @@
 # Simple Summary Base View
 
-This plugin renders a grouped summary table as a custom [Obsidian Bases](https://help.obsidian.md/bases) view.
+A plain summary table for the Bases you already have. Add it as another view on an existing Base, or embed that Base in a note, to see totals instead of a long list of notes.
 
-Create a Base, filter the notes you want, group by a property, and select the `Simple Summary Base View` custom view. You get one row per group, with a note count and any summaries you choose, styled like the native Bases table.
+## Why use it
+
+A Bases table lists every note. Often you only want the answer: how many, how much, how recent. This view collapses the same filtered notes into one row per group, with a table that looks like the native one and no extra styling to maintain.
+
+| You have | The summary shows |
+| --- | --- |
+| Expenses by category | Count and total amount |
+| Books by genre | Count, pages read and average rating |
+| Tasks by status | Count and estimated hours |
+| Client work by client | Hours, billable entries and next due date |
+
+- Reuses your existing Base filters, properties and formulas. Nothing to rebuild.
+- Works anywhere a Base works, including embeds in notes.
+- Count, Sum, Average, Min, Max, Earliest, Latest, Date range, and your own formulas.
+- Sort, resize columns and copy or export CSV, like the native table.
 
 ## How to use
 
