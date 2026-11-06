@@ -639,10 +639,24 @@ export class SummaryBasesView extends BasesView {
 
 		const footer = this.rootEl.createDiv('bases-tr bases-table-footer');
 		footer.setCssProps({ '--sbv-width': `${totalWidth}px` });
-		this.createFooterCell(footer, widths[0], starts[0])
-			.createDiv('bases-table-summary-cell')
-			.createDiv('summary-content')
-			.createSpan({ cls: 'placeholder', text: '' });
+		const groupFooter = this.createFooterCell(footer, widths[0], starts[0]).createDiv('bases-table-summary-cell');
+		if (columns.some((column) => column.propertyId === null)) {
+			groupFooter.createDiv('summary-content').createSpan({ cls: 'placeholder', text: '' });
+		} else {
+			groupFooter.tabIndex = 0;
+			groupFooter.setAttribute('role', 'button');
+			groupFooter.setAttribute('aria-label', 'Add count column');
+			groupFooter.createDiv('summary-content')
+				.createSpan({ cls: 'placeholder summary-base-view-add-summary', text: 'Add count' });
+			const addCount = (): void => this.saveColumns([{ id: COUNT_COLUMN_ID, propertyId: null }, ...columns]);
+			groupFooter.addEventListener('click', addCount);
+			groupFooter.addEventListener('keydown', (event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					addCount();
+				}
+			});
+		}
 
 		for (let index = 0; index < columns.length; index += 1) {
 			const column = columns[index];
@@ -884,6 +898,12 @@ export class SummaryBasesView extends BasesView {
 				.setTitle('Add summary column')
 				.setIcon('columns-3')
 				.onClick(() => this.addSummaryColumn(column)));
+		}
+		if (column && !columns.some((item) => item.propertyId === null)) {
+			menu.addItem((item) => item
+				.setTitle('Add count column')
+				.setIcon('hash')
+				.onClick(() => this.saveColumns([{ id: COUNT_COLUMN_ID, propertyId: null }, ...columns])));
 		}
 		if (column) {
 			menu.addItem((item) => item
