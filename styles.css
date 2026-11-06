@@ -86,6 +86,11 @@
 	cursor: pointer;
 }
 
+/* Keep the chevron's space reserved so hovering or opening a menu doesn't shift the summary. */
+.summary-base-view .bases-table-summary-cell[role='button'] .summary-expand-button {
+	display: flex;
+}
+
 .summary-base-view .bases-table-summary-cell[role='button']:hover {
 	background: var(--background-modifier-hover);
 }

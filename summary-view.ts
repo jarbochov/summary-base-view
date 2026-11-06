@@ -1071,6 +1071,7 @@ export class SummaryBasesView extends BasesView {
 				.setIcon('trash-2')
 				.onClick(() => this.setSummary(column, null)));
 		}
+		this.markActiveMenu(event, menu);
 		menu.showAtMouseEvent(event);
 
 		const openMenus = Array.from(activeDocument.querySelectorAll<HTMLElement>('.menu'));
@@ -1169,6 +1170,14 @@ export class SummaryBasesView extends BasesView {
 		});
 	}
 
+	private markActiveMenu(event: MouseEvent, menu: Menu): void {
+		const cell = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+		if (cell?.hasClass('bases-table-summary-cell')) {
+			cell.addClass('has-active-menu');
+			menu.onHide(() => cell.removeClass('has-active-menu'));
+		}
+	}
+
 	private openCountSummaryMenu(event: MouseEvent, column: SummaryColumn): void {
 		const selected = column.summaryKey ?? 'Count';
 		const menu = new Menu();
@@ -1185,6 +1194,7 @@ export class SummaryBasesView extends BasesView {
 			.setTitle('Hide summary')
 			.setIcon('trash-2')
 			.onClick(() => this.setSummary(column, COUNT_SUMMARY_NONE)));
+		this.markActiveMenu(event, menu);
 		menu.showAtMouseEvent(event);
 	}
 
