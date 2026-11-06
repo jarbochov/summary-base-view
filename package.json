@@ -9,13 +9,16 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "node scripts/smoke-test.mjs",
-    "verify": "npm run build && npm run typecheck && npm run lint && npm test"
+    "verify": "npm run build && npm run typecheck && npm run lint && npm run lint:css && npm test",
+    "lint:css": "stylelint styles.css"
   },
   "devDependencies": {
     "esbuild": "^0.16.17",
     "eslint": "^9.39.5",
     "eslint-plugin-obsidianmd": "^0.5.0",
     "obsidian": "^1.13.1",
+    "stylelint": "^18.0.0",
+    "stylelint-no-unsupported-browser-features": "^8.1.2",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.72.1"
   },

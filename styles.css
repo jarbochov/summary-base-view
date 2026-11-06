@@ -32,8 +32,8 @@
 	width: var(--sbv-width);
 }
 
-.summary-base-view-hidden {
-	display: none !important;
+.summary-base-view-hidden.summary-base-view-hidden {
+	display: none;
 }
 
 .summary-base-view .bases-thead {
@@ -89,9 +89,9 @@
 	outline-offset: -2px;
 }
 
-.bases-toolbar-result-count.summary-base-view-hide-result-count {
-	visibility: hidden !important;
-	pointer-events: none !important;
+.bases-toolbar-result-count.summary-base-view-hide-result-count.summary-base-view-hide-result-count {
+	visibility: hidden;
+	pointer-events: none;
 }
 
 .summary-base-view .bases-thead .bases-td {
