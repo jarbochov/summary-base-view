@@ -41,6 +41,7 @@ import {
 
 export const SUMMARY_VIEW_TYPE = 'summary-base-view';
 const MIN_COLUMN_WIDTH = 60;
+const MAX_AUTO_COLUMN_WIDTH = 480;
 
 interface ParsedViewSettings {
 	groupByProperty: string | null;
@@ -511,10 +512,11 @@ export class SummaryBasesView extends BasesView {
 		rows: ReturnType<typeof buildSummaryRows<BasesEntry, Value, Value>>,
 		allEntries: readonly BasesEntry[],
 		headers: readonly string[],
+		autoWidths: readonly number[] | null = null,
 	): void {
 		const rowHeight = 30;
 		const sizes = { ...columnSize, ...this.sizeOverride };
-		const widths = this.getColumnWidths(groupByProperty, columns, sizes, this.rootEl.clientWidth);
+		const widths = this.getColumnWidths(groupByProperty, columns, sizes, autoWidths);
 		const starts = widths.map((_, index) => widths.slice(0, index).reduce((total, width) => total + width, 0));
 		const totalWidth = widths.reduce((total, width) => total + width, 0);
 
@@ -610,6 +612,22 @@ export class SummaryBasesView extends BasesView {
 					summaryCell.click();
 				}
 			});
+		}
+
+		if (autoWidths === null) {
+			const measured = this.measureColumnWidths(widths.length);
+			this.rootEl.empty();
+			this.renderTable(
+				groupByProperty,
+				groupDirection,
+				columns,
+				customSummaries,
+				columnSize,
+				rows,
+				allEntries,
+				headers,
+				measured,
+			);
 		}
 	}
 
@@ -855,22 +873,44 @@ export class SummaryBasesView extends BasesView {
 		return cell;
 	}
 
+	private measureColumnWidths(count: number): number[] {
+		const widest = new Array<number>(count).fill(0);
+		const measure = (el: Element | null, extra: number, index: number): void => {
+			if (!el) {
+				return;
+			}
+			const range = activeDocument.createRange();
+			range.selectNodeContents(el);
+			widest[index] = Math.max(widest[index], Math.ceil(range.getBoundingClientRect().width) + extra);
+		};
+		const rowSelectors: Array<[string, string, number]> = [
+			['.bases-thead .bases-tr', '.bases-table-header-label', 44],
+			['.bases-tbody .bases-tr', '.bases-table-cell', 24],
+		];
+		for (const [rowSelector, contentSelector, extra] of rowSelectors) {
+			for (const row of Array.from(this.rootEl.querySelectorAll(rowSelector))) {
+				Array.from(row.children).forEach((cell, index) => measure(cell.querySelector(contentSelector), extra, index));
+			}
+		}
+		const footer = this.rootEl.querySelector('.bases-table-footer');
+		Array.from(footer?.children ?? []).forEach((cell, index) => {
+			const content = cell.querySelector('.summary-content');
+			measure(content, cell.querySelector('.summary-expand-button') ? 44 : 24, index);
+		});
+		return widest;
+	}
+
 	private getColumnWidths(
 		groupByProperty: string | null,
 		columns: readonly SummaryColumn[],
 		columnSize: Readonly<Record<string, number>>,
-		availableWidth: number,
+		autoWidths: readonly number[] | null,
 	): number[] {
-		const widths = [
-			columnSize[groupByProperty ?? ''] ?? 180,
-			...columns.map((column) => columnSize[column.id] ?? (column.propertyId === null ? 100 : 160)),
-		].map((width) => Math.max(MIN_COLUMN_WIDTH, width));
-		const lastKey = columns.length > 0 ? columns[columns.length - 1].id : groupByProperty ?? '';
-		const totalWidth = widths.reduce((total, width) => total + width, 0);
-		if (availableWidth > totalWidth && columnSize[lastKey] === undefined) {
-			widths[widths.length - 1] += availableWidth - totalWidth;
-		}
-		return widths;
+		const keys = [groupByProperty ?? '', ...columns.map((column) => column.id)];
+		return keys.map((key, index) => {
+			const fallback = autoWidths?.[index] ?? (index === 0 ? 180 : 160);
+			return Math.max(MIN_COLUMN_WIDTH, columnSize[key] ?? Math.min(fallback, MAX_AUTO_COLUMN_WIDTH));
+		});
 	}
 
 	private openSummaryMenu(

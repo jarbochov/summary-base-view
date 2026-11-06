@@ -30,7 +30,7 @@
     "url": "git+https://github.com/jarbochov/summary-base-view.git"
   },
   "author": "jarbochov",
-  "license": "GPL-3.0",
+  "license": "GPL-3.0-only",
   "bugs": {
     "url": "https://github.com/jarbochov/summary-base-view/issues"
   },
