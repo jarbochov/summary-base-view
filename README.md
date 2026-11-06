@@ -61,9 +61,32 @@ View settings:
 
 ## Screenshots
 
-Captured from a small demo Base in Obsidian's default theme.
+Captured from small demo Bases in Obsidian's default theme. Each example shows desktop, then phone width.
 
-![Simple Summary Base View demo](assets/simple-summary-demo.png)
+### Budget: spending by category (Count, Sum, Average, Max, Latest date)
+
+![Budget: spending by category (Count, Sum, Average, Max, Latest date)](assets/demo-budget-desktop.png)
+
+<img src="assets/demo-budget-mobile.png" alt="Budget: spending by category (Count, Sum, Average, Max, Latest date) on mobile" width="320">
+
+### Reading log: pages and ratings by genre
+
+![Reading log: pages and ratings by genre](assets/demo-reading-desktop.png)
+
+<img src="assets/demo-reading-mobile.png" alt="Reading log: pages and ratings by genre on mobile" width="320">
+
+### Project hours: billable hours by client
+
+![Project hours: billable hours by client](assets/demo-work-desktop.png)
+
+<img src="assets/demo-work-mobile.png" alt="Project hours: billable hours by client on mobile" width="320">
+
+### Tasks: estimates and earliest due date by status
+
+![Tasks: estimates and earliest due date by status](assets/demo-tasks-desktop.png)
+
+<img src="assets/demo-tasks-mobile.png" alt="Tasks: estimates and earliest due date by status on mobile" width="320">
+
 
 ## Quick compile and test
 

@@ -78,6 +78,7 @@
 
 .summary-base-view .bases-td .summary-base-view-numeric {
 	width: 100%;
+	justify-content: flex-end;
 	text-align: end;
 }
 
