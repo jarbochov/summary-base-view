@@ -223,6 +223,7 @@ function summaryOptions(value: Value | null, customSummaries: Readonly<Record<st
 interface NativeViewConfig {
 	groupBy?: { property?: unknown; direction?: unknown } | null;
 	setGroupBy?: (groupBy: { property: string; direction: 'ASC' | 'DESC' } | null) => void;
+	setOrder?: (order: BasesPropertyId[]) => void;
 	setSortProperty?: (property: string, direction: 'ASC' | 'DESC' | 'NONE') => void;
 }
 
@@ -237,6 +238,15 @@ function writeNativeGroupBy(config: BasesViewConfig, groupBy: { property: string
 		native.setGroupBy(groupBy);
 	} else {
 		config.set('groupBy', groupBy);
+	}
+}
+
+function writeNativeOrder(config: BasesViewConfig, order: BasesPropertyId[]): void {
+	const native = config as unknown as NativeViewConfig;
+	if (typeof native.setOrder === 'function') {
+		native.setOrder(order);
+	} else {
+		config.set('order', order);
 	}
 }
 
@@ -404,7 +414,9 @@ export class SummaryBasesView extends BasesView {
 				this.pendingSortSignature = null;
 			} else {
 				const first = configSorts[0];
-				const target = first ? columns.find((column) => column.propertyId === first.property) : undefined;
+				const target = first && first.property !== groupByProperty
+					? columns.find((column) => column.propertyId === first.property)
+					: undefined;
 				this.activeSort = first && target ? { target: target.id, direction: first.direction } : null;
 			}
 		}
@@ -417,7 +429,7 @@ export class SummaryBasesView extends BasesView {
 		const sortedColumn = sortColumn >= 0 ? columns[sortColumn] : null;
 		this.currentSorts = this.activeSort && sortedColumn?.propertyId && sortedColumn.id === sortedColumn.propertyId
 			? [{ property: sortedColumn.propertyId as BasesPropertyId, direction: this.activeSort.direction }]
-			: [];
+			: !this.activeSort && configSorts[0]?.property === groupByProperty ? [configSorts[0]] : [];
 		const groupDirection = isRecord(rawGroupBy) && rawGroupBy.direction === 'DESC'
 			? 'DESC'
 			: isRecord(rawGroupBy) && rawGroupBy.direction === 'ASC'
@@ -528,8 +540,11 @@ export class SummaryBasesView extends BasesView {
 					cell.dataset.property = propertyId;
 				}
 				cell.setCssProps({ '--sbv-start': `${starts[columnIndex]}px`, '--sbv-width': `${widths[columnIndex]}px` });
-				const content = cell.createDiv('bases-table-cell bases-rendered-value');
 				const value = values[columnIndex];
+				const isNumeric = value instanceof NumberValue
+					|| (columnIndex > 0 && columns[columnIndex - 1].propertyId === null);
+				const content = cell.createDiv('bases-table-cell bases-rendered-value');
+				content.toggleClass('summary-base-view-numeric', isNumeric);
 				if (typeof value === 'string') {
 					content.setText(value);
 				} else if (value) {
@@ -677,7 +692,8 @@ export class SummaryBasesView extends BasesView {
 	): void {
 		if (column === null) {
 			this.activeSort = null;
-			this.saveSort([]);
+			// The group column is sorted through both native menus: Sort lists it and Group shows its direction.
+			this.saveSort(groupByProperty ? [{ property: groupByProperty, direction }] : []);
 			if (groupByProperty) {
 				this.setGroupDirection(groupByProperty, direction);
 			}
@@ -777,7 +793,7 @@ export class SummaryBasesView extends BasesView {
 	private removeColumn(column: SummaryColumn): void {
 		const next = this.currentColumns.filter((item) => item.id !== column.id);
 		if (column.propertyId && !next.some((item) => item.propertyId === column.propertyId)) {
-			this.config.set('order', this.config.getOrder().filter((property) => property !== column.propertyId));
+			writeNativeOrder(this.config, this.config.getOrder().filter((property) => property !== column.propertyId));
 		}
 		this.saveColumns(next);
 	}

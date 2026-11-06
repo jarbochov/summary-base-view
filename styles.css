@@ -76,6 +76,11 @@
 	background: var(--background-primary);
 }
 
+.summary-base-view .bases-td .summary-base-view-numeric {
+	width: 100%;
+	text-align: end;
+}
+
 .summary-base-view .bases-table-summary-cell[role='button'] {
 	cursor: pointer;
 }
