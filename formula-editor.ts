@@ -17,6 +17,9 @@ interface FormulaItem {
 
 export const PRESET_SUMMARIES: readonly FormulaItem[] = [
 	{ label: 'Date range', apply: 'values.earliest().format("YYYY-MM-DD") + " ~ " + values.latest().format("YYYY-MM-DD")' },
+	{ label: 'Total hours', apply: 'values.map(value.hours).sum().round(2)' },
+	{ label: 'Total days', apply: 'values.map(value.days).sum().round(2)' },
+	{ label: 'Average hours', apply: 'values.map(value.hours).mean().round(2)' },
 	{ label: 'Average', apply: 'values.mean().round(2)' },
 	{ label: 'Sum', apply: 'values.sum().round(2)' },
 	{ label: 'Min', apply: 'values.min()' },

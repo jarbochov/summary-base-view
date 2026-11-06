@@ -44,6 +44,17 @@ import {
 
 export const SUMMARY_VIEW_TYPE = 'summary-base-view';
 const DATE_RANGE_SUMMARY = 'Date range';
+const DURATION_SUMMARIES: Readonly<Record<string, { unit: number; average: boolean }>> = {
+	'Total hours': { unit: 3_600_000, average: false },
+	'Total days': { unit: 86_400_000, average: false },
+	'Average hours': { unit: 3_600_000, average: true },
+};
+
+// Durations (such as a date difference) have no type export, so detect them by their millisecond accessor.
+function isDurationValue(value: Value | null | undefined): boolean {
+	return Boolean(value) && !(value instanceof DateValue)
+		&& typeof (value as { getMilliseconds?: unknown }).getMilliseconds === 'function';
+}
 const DATE_RANGE_FORMULA = 'values.earliest().format("YYYY-MM-DD") + " ~ " + values.latest().format("YYYY-MM-DD")';
 export const SHOW_SUMMARY_ROW_KEY = 'showSummaryRow';
 const MIN_COLUMN_WIDTH = 60;
@@ -282,6 +293,8 @@ function summaryOptions(value: Value | null, customSummaries: Readonly<Record<st
 		options = ['Average', 'Min', 'Max', 'Sum', 'Range', 'Median', 'Stddev', 'Empty', 'Filled', 'Unique'];
 	} else if (value instanceof DateValue) {
 		options = ['Earliest', 'Latest', DATE_RANGE_SUMMARY, 'Range', 'Empty', 'Filled', 'Unique'];
+	} else if (isDurationValue(value)) {
+		options = [...Object.keys(DURATION_SUMMARIES), 'Empty', 'Filled', 'Unique'];
 	} else if (value instanceof BooleanValue) {
 		options = ['Checked', 'Unchecked', 'Empty', 'Filled', 'Unique'];
 	} else {
@@ -386,7 +399,25 @@ export class SummaryBasesView extends BasesView {
 		return earliest && latest ? new StringValue(`${earliest} ~ ${latest}`) : NullValue.value;
 	}
 
+	private getDurationSummary(entries: BasesEntry[], propertyId: BasesPropertyId, summaryKey: string): Value {
+		const { unit, average } = DURATION_SUMMARIES[summaryKey];
+		const milliseconds = entries.flatMap((entry) => {
+			const value = entry.getValue(propertyId);
+			return isDurationValue(value)
+				? [(value as unknown as { getMilliseconds: () => number }).getMilliseconds()]
+				: [];
+		});
+		if (milliseconds.length === 0) {
+			return NullValue.value;
+		}
+		const total = milliseconds.reduce((sum, item) => sum + item, 0);
+		return new NumberValue(Math.round((total / unit / (average ? milliseconds.length : 1)) * 100) / 100);
+	}
+
 	private getSummaryValue(entries: BasesEntry[], propertyId: BasesPropertyId, summaryKey: string): Value {
+		if (summaryKey in DURATION_SUMMARIES && !this.customSummaryNames.has(summaryKey)) {
+			return this.getDurationSummary(entries, propertyId, summaryKey);
+		}
 		if (summaryKey === DATE_RANGE_SUMMARY && !this.customSummaryNames.has(summaryKey)) {
 			return this.getDateRange(entries, propertyId);
 		}
