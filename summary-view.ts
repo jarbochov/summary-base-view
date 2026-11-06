@@ -573,6 +573,9 @@ export class SummaryBasesView extends BasesView {
 					content.setText(value);
 				} else if (value) {
 					renderValue(content, value, this.renderContext);
+				} else if (columnIndex > 0 && columns[columnIndex - 1].propertyId !== null && !columns[columnIndex - 1].summaryKey) {
+					content.addClass('summary-base-view-no-summary');
+					content.setText('–');
 				}
 			}
 		}
@@ -603,7 +606,7 @@ export class SummaryBasesView extends BasesView {
 				const value = this.getSummaryValue([...allEntries], column.propertyId as BasesPropertyId, column.summaryKey);
 				renderValue(content.createDiv('summary-function-value'), value, this.renderContext);
 			} else {
-				content.createSpan({ cls: 'placeholder', text: 'Summary' });
+				content.createSpan({ cls: 'placeholder summary-base-view-add-summary', text: 'Add summary' });
 			}
 			summaryCell.addEventListener('click', (event) => this.openSummaryMenu(event, column, customSummaries));
 			summaryCell.addEventListener('keydown', (event) => {

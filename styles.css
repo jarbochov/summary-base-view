@@ -150,3 +150,12 @@
 .cm-tooltip.cm-tooltip-autocomplete {
 	z-index: var(--layer-menu);
 }
+
+.summary-base-view-no-summary {
+	color: var(--text-faint);
+}
+
+.summary-base-view-add-summary {
+	color: var(--text-muted);
+	font-style: italic;
+}
