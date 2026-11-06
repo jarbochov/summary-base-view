@@ -44,10 +44,15 @@ import {
 
 export const SUMMARY_VIEW_TYPE = 'summary-base-view';
 const DATE_RANGE_SUMMARY = 'Date range';
-const DURATION_SUMMARIES: Readonly<Record<string, { unit: number; average: boolean }>> = {
-	'Total hours': { unit: 3_600_000, average: false },
-	'Total days': { unit: 86_400_000, average: false },
-	'Average hours': { unit: 3_600_000, average: true },
+type DurationMode = 'sum' | 'mean' | 'max' | 'min';
+const DURATION_SUMMARIES: Readonly<Record<string, { unit: number; mode: DurationMode }>> = {
+	'Total hours': { unit: 3_600_000, mode: 'sum' },
+	'Total days': { unit: 86_400_000, mode: 'sum' },
+	'Total minutes': { unit: 60_000, mode: 'sum' },
+	'Average hours': { unit: 3_600_000, mode: 'mean' },
+	'Average days': { unit: 86_400_000, mode: 'mean' },
+	'Longest (hours)': { unit: 3_600_000, mode: 'max' },
+	'Shortest (hours)': { unit: 3_600_000, mode: 'min' },
 };
 
 // Durations (such as a date difference) have no type export, so detect them by their millisecond accessor.
@@ -400,7 +405,7 @@ export class SummaryBasesView extends BasesView {
 	}
 
 	private getDurationSummary(entries: BasesEntry[], propertyId: BasesPropertyId, summaryKey: string): Value {
-		const { unit, average } = DURATION_SUMMARIES[summaryKey];
+		const { unit, mode } = DURATION_SUMMARIES[summaryKey];
 		const milliseconds = entries.flatMap((entry) => {
 			const value = entry.getValue(propertyId);
 			return isDurationValue(value)
@@ -411,7 +416,10 @@ export class SummaryBasesView extends BasesView {
 			return NullValue.value;
 		}
 		const total = milliseconds.reduce((sum, item) => sum + item, 0);
-		return new NumberValue(Math.round((total / unit / (average ? milliseconds.length : 1)) * 100) / 100);
+		const result = mode === 'max' ? Math.max(...milliseconds)
+			: mode === 'min' ? Math.min(...milliseconds)
+				: mode === 'mean' ? total / milliseconds.length : total;
+		return new NumberValue(Math.round((result / unit) * 100) / 100);
 	}
 
 	private getSummaryValue(entries: BasesEntry[], propertyId: BasesPropertyId, summaryKey: string): Value {
