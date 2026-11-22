@@ -1,7 +1,7 @@
 import { Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, SummaryBaseViewSettings, SummaryBaseViewSettingTab } from './settings';
 import { parseExcludedFolders } from './summary-core';
-import { SHOW_SUMMARY_ROW_KEY, SUMMARY_VIEW_TYPE, SummaryBasesView } from './summary-view';
+import { SHOW_EMPTY_GROUP_KEY, SHOW_SUMMARY_ROW_KEY, SUMMARY_VIEW_TYPE, SummaryBasesView } from './summary-view';
 
 export default class SummaryBaseViewPlugin extends Plugin {
 	settings: SummaryBaseViewSettings = { ...DEFAULT_SETTINGS };
@@ -15,6 +15,7 @@ export default class SummaryBaseViewPlugin extends Plugin {
 			icon: 'lucide-table-properties',
 			options: () => [
 				{ type: 'toggle', key: SHOW_SUMMARY_ROW_KEY, displayName: 'Show summary row', default: true },
+				{ type: 'toggle', key: SHOW_EMPTY_GROUP_KEY, displayName: 'Show empty group', default: false },
 			],
 			factory: (controller, containerEl) => {
 				const view = new SummaryBasesView(

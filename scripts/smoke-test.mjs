@@ -97,12 +97,75 @@ try {
 		(entry) => entry.path.split('/').slice(0, -1).includes('Templates'),
 	);
 
-	assert.deepEqual(core.parseExcludedFolders(' Templates,\n/Archive/Old/ \n'), ['Templates', 'Archive/Old']);
+	assert.deepEqual(core.parseExcludedFolders(' Templates,\n\\Archive\\Old\\ \n'), ['Templates', 'Archive/Old']);
 	assert.equal(core.isExcludedPath('A/Templates/x.md', ['Templates']), true);
 	assert.equal(core.isExcludedPath('A/TemplatesX/x.md', ['Templates']), false);
 	assert.equal(core.isExcludedPath('Archive/Old/Sub/x.md', ['Archive/Old']), true);
 	assert.equal(core.isExcludedPath('Archive/Older/x.md', ['Archive/Old']), false);
 	assert.equal(core.isExcludedPath('Templates/x.md', []), false);
+
+	const expandedWithEmpty = core.expandSummaryGroups(
+		sourceGroups,
+		(key) => Array.isArray(key) ? key : [key],
+		(left, right) => left === right,
+		'(Empty)',
+	);
+	const rowsWithEmpty = core.buildSummaryRows(
+		expandedWithEmpty,
+		columns,
+		(entries, propertyId, summaryKey) => `${propertyId}:${summaryKey}:${entries.length}`,
+		(entry) => entry.path.split('/').slice(0, -1).includes('Templates'),
+		true,
+	);
+	assert.equal(rowsWithEmpty.length, 4);
+	assert.equal(rowsWithEmpty[3].key, '(Empty)');
+	assert.equal(rowsWithEmpty[3].count, 1);
+
+	const numericRows = [
+		{ key: 'Neg', count: 1, values: [-10] },
+		{ key: 'Small', count: 1, values: [1.9] },
+		{ key: 'Mid', count: 1, values: [1.15] },
+		{ key: 'Empty', count: 1, values: [null] },
+	];
+	const getNumericSortKey = (value) => value === null
+		? { empty: true, text: '' }
+		: typeof value === 'number'
+			? { empty: false, num: value, text: String(value) }
+			: { empty: false, text: String(value) };
+	assert.deepEqual(
+		core.sortSummaryRows(numericRows, String, {
+			direction: 'ASC',
+			columnIndex: 0,
+			columnDirection: 'ASC',
+			getSortKey: getNumericSortKey,
+		}).map((row) => row.key),
+		['Neg', 'Mid', 'Small', 'Empty'],
+	);
+	assert.deepEqual(
+		core.sortSummaryRows(numericRows, String, {
+			direction: 'ASC',
+			columnIndex: 0,
+			columnDirection: 'DESC',
+			getSortKey: getNumericSortKey,
+		}).map((row) => row.key),
+		['Small', 'Mid', 'Neg', 'Empty'],
+	);
+
+	const syncedOrder = core.syncSummaryColumnsOrder(
+		[
+			{ type: 'count' },
+			{ property: 'note.amount', summary: 'Sum' },
+			{ property: 'note.amount', summary: 'Average' },
+			{ property: 'note.rating', summary: 'Max' },
+		],
+		['note.rating', 'note.amount'],
+	);
+	assert.deepEqual(syncedOrder, [
+		{ type: 'count' },
+		{ property: 'note.rating', summary: 'Max' },
+		{ property: 'note.amount', summary: 'Sum' },
+		{ property: 'note.amount', summary: 'Average' },
+	]);
 
 	assert.equal(rows.length, 3);
 	assert.equal(rows[0].key, 'Book');

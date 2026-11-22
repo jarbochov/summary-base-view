@@ -29,6 +29,7 @@ export const PRESET_SUMMARIES: readonly FormulaItem[] = [
 	{ label: 'Min', apply: 'values.min()' },
 	{ label: 'Max', apply: 'values.max()' },
 	{ label: 'Median', apply: 'values.median()' },
+	{ label: 'Stddev', apply: 'values.stddev().round(2)' },
 	{ label: 'Range', apply: 'values.max() - values.min()' },
 	{ label: 'Earliest', apply: 'values.earliest()' },
 	{ label: 'Latest', apply: 'values.latest()' },

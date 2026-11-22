@@ -18,29 +18,61 @@ export interface SummaryColumnConfig {
 	summary?: string;
 }
 
-export interface SummaryRow<TKey, TValue> {
+export interface SummaryRow<TKey, TValue, TEntry = unknown> {
 	key: TKey;
 	count: number;
 	values: Array<TValue | null>;
+	entries?: readonly TEntry[];
 }
 
-export interface SummarySortOptions {
+export interface SummarySortKey {
+	empty: boolean;
+	num?: number;
+	text: string;
+}
+
+export interface SummarySortOptions<TKey = unknown, TValue = unknown> {
 	direction: 'ASC' | 'DESC';
 	groupOrder?: readonly string[];
 	columnIndex?: number;
 	columnDirection?: 'ASC' | 'DESC';
 	countDirection?: 'ASC' | 'DESC';
+	getSortKey?: (value: TKey | TValue | null) => SummarySortKey;
 }
 
-export function sortSummaryRows<TKey, TValue>(
-	rows: readonly SummaryRow<TKey, TValue>[],
+function compareSortKeys(left: SummarySortKey, right: SummarySortKey, direction: 1 | -1): number {
+	if (left.empty !== right.empty) {
+		// Always sink empty/null values to the bottom regardless of sort direction.
+		return left.empty ? 1 : -1;
+	}
+	if (left.empty && right.empty) {
+		return 0;
+	}
+	if (left.num !== undefined && right.num !== undefined && Number.isFinite(left.num) && Number.isFinite(right.num)) {
+		if (left.num !== right.num) {
+			return (left.num - right.num) * direction;
+		}
+		return 0;
+	}
+	return left.text.localeCompare(right.text, undefined, {
+		numeric: true,
+		sensitivity: 'base',
+	}) * direction;
+}
+
+export function sortSummaryRows<TKey, TValue, TEntry = unknown>(
+	rows: readonly SummaryRow<TKey, TValue, TEntry>[],
 	toString: (value: TKey | TValue | null) => string,
-	options: SummarySortOptions,
-): SummaryRow<TKey, TValue>[] {
-	const direction = options.direction === 'DESC' ? -1 : 1;
-	const columnDirection = options.columnDirection === 'DESC' ? -1 : 1;
-	const countDirection = options.countDirection === 'DESC' ? -1 : 1;
+	options: SummarySortOptions<TKey, TValue>,
+): SummaryRow<TKey, TValue, TEntry>[] {
+	const direction: 1 | -1 = options.direction === 'DESC' ? -1 : 1;
+	const columnDirection: 1 | -1 = options.columnDirection === 'DESC' ? -1 : 1;
+	const countDirection: 1 | -1 = options.countDirection === 'DESC' ? -1 : 1;
 	const groupOrderIndex = new Map((options.groupOrder ?? []).map((value, index) => [value, index]));
+	const resolveKey = options.getSortKey ?? ((value: TKey | TValue | null): SummarySortKey => {
+		const text = toString(value);
+		return { empty: text.length === 0, text };
+	});
 
 	return [...rows].sort((left, right) => {
 		if (options.countDirection) {
@@ -65,17 +97,14 @@ export function sortSummaryRows<TKey, TValue>(
 		}
 
 		if (options.columnIndex !== undefined) {
-			return toString(left.values[options.columnIndex]).localeCompare(
-				toString(right.values[options.columnIndex]),
-				undefined,
-				{ numeric: true, sensitivity: 'base' },
-			) * columnDirection;
+			return compareSortKeys(
+				resolveKey(left.values[options.columnIndex]),
+				resolveKey(right.values[options.columnIndex]),
+				columnDirection,
+			);
 		}
 
-		return toString(left.key).localeCompare(toString(right.key), undefined, {
-			numeric: true,
-			sensitivity: 'base',
-		}) * direction;
+		return compareSortKeys(resolveKey(left.key), resolveKey(right.key), direction);
 	});
 }
 
@@ -83,27 +112,41 @@ export function expandSummaryGroups<TEntry, TKey>(
 	groups: readonly SummaryGroup<TEntry, TKey>[],
 	expandKey: (key: TKey) => readonly TKey[],
 	keysEqual: (left: TKey, right: TKey) => boolean,
+	emptyKey?: TKey,
 ): SummaryGroup<TEntry, TKey>[] {
 	const expandedGroups: Array<{ key: TKey; entries: TEntry[] }> = [];
+	const addEntry = (targetKey: TKey, entries: readonly TEntry[]): void => {
+		let target = expandedGroups.find((candidate) => keysEqual(candidate.key, targetKey));
+		if (!target) {
+			target = { key: targetKey, entries: [] };
+			expandedGroups.push(target);
+		}
+		for (const entry of entries) {
+			if (!target.entries.includes(entry)) {
+				target.entries.push(entry);
+			}
+		}
+	};
 
 	for (const group of groups) {
 		const key = group.key;
 		if (key === null || key === undefined || (group.hasKey && !group.hasKey())) {
+			if (emptyKey !== undefined) {
+				addEntry(emptyKey, group.entries);
+			}
 			continue;
 		}
 
-		for (const expandedKey of expandKey(key)) {
-			let target = expandedGroups.find((candidate) => keysEqual(candidate.key, expandedKey));
-			if (!target) {
-				target = { key: expandedKey, entries: [] };
-				expandedGroups.push(target);
+		const expanded = expandKey(key);
+		if (expanded.length === 0) {
+			if (emptyKey !== undefined) {
+				addEntry(emptyKey, group.entries);
 			}
+			continue;
+		}
 
-			for (const entry of group.entries) {
-				if (!target.entries.includes(entry)) {
-					target.entries.push(entry);
-				}
-			}
+		for (const expandedKey of expanded) {
+			addEntry(expandedKey, group.entries);
 		}
 	}
 
@@ -238,17 +281,63 @@ export function buildSummaryColumns(
 	return columns;
 }
 
+export function syncSummaryColumnsOrder(
+	configured: readonly SummaryColumnConfig[],
+	nextOrder: readonly string[],
+	availableProperties: readonly string[] = nextOrder,
+): SummaryColumnConfig[] {
+	const byProperty = new Map<string, SummaryColumnConfig[]>();
+	const countIndices: Array<{ index: number; item: SummaryColumnConfig }> = [];
+
+	configured.forEach((item, index) => {
+		if (item.type === 'count') {
+			countIndices.push({ index, item });
+			return;
+		}
+		const propertyId = normalizePropertyId(item.property, availableProperties) ?? item.property;
+		if (!propertyId) {
+			return;
+		}
+		const group = byProperty.get(propertyId) ?? [];
+		group.push({ ...item, property: propertyId });
+		byProperty.set(propertyId, group);
+	});
+
+	const orderedProps: SummaryColumnConfig[] = [];
+	const used = new Set<string>();
+	for (const rawProp of nextOrder) {
+		const propertyId = normalizePropertyId(rawProp, availableProperties) ?? rawProp;
+		const group = byProperty.get(propertyId);
+		if (group && !used.has(propertyId)) {
+			used.add(propertyId);
+			orderedProps.push(...group);
+		}
+	}
+	for (const [propertyId, group] of byProperty.entries()) {
+		if (!used.has(propertyId)) {
+			orderedProps.push(...group);
+		}
+	}
+
+	const result = [...orderedProps];
+	for (const { index, item } of countIndices) {
+		result.splice(Math.min(index, result.length), 0, item);
+	}
+	return result;
+}
+
 export function buildSummaryRows<TEntry, TKey, TValue>(
 	groups: readonly SummaryGroup<TEntry, TKey>[],
 	columns: readonly SummaryColumn[],
 	summarize: (entries: readonly TEntry[], propertyId: string, summaryKey: string) => TValue,
 	excludeEntry: (entry: TEntry) => boolean,
-): SummaryRow<TKey, TValue>[] {
-	const rows: SummaryRow<TKey, TValue>[] = [];
+	allowEmptyKey = false,
+): SummaryRow<TKey, TValue, TEntry>[] {
+	const rows: SummaryRow<TKey, TValue, TEntry>[] = [];
 
 	for (const group of groups) {
 		const key = group.key;
-		if (key === null || key === undefined || (group.hasKey && !group.hasKey())) {
+		if (!allowEmptyKey && (key === null || key === undefined || (group.hasKey && !group.hasKey()))) {
 			continue;
 		}
 
@@ -258,8 +347,9 @@ export function buildSummaryRows<TEntry, TKey, TValue>(
 		}
 
 		rows.push({
-			key,
+			key: key as TKey,
 			count: entries.length,
+			entries,
 			values: columns.map(({ propertyId, summaryKey }) =>
 				propertyId !== null && summaryKey ? summarize(entries, propertyId, summaryKey) : null,
 			),
@@ -297,7 +387,7 @@ export function serializeMarkdownTable(headers: readonly string[], rows: readonl
 export function parseExcludedFolders(value: string): string[] {
 	return value
 		.split(/[\n,]/)
-		.map((item) => item.trim().replace(/^\/+|\/+$/g, ''))
+		.map((item) => item.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''))
 		.filter((item) => item.length > 0);
 }
 

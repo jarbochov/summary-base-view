@@ -28,6 +28,7 @@ export class SummaryBaseViewSettingTab extends PluginSettingTab {
 			.setName(EXCLUDED_FOLDERS_NAME)
 			.setDesc(EXCLUDED_FOLDERS_DESC)
 			.addTextArea((text) => {
+				text.inputEl.rows = 4;
 				text.setPlaceholder('Templates');
 				text.setValue(this.plugin.settings.excludedFolders);
 				text.onChange(async (value) => {
